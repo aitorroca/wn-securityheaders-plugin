@@ -1,9 +1,15 @@
 <?php namespace Zaxbux\SecurityHeaders;
 
 use Backend;
+use Event;
+use Request;
+use Log;
 use System\Classes\PluginBase;
 use Zaxbux\SecurityHeaders\Classes\CSPFormBuilder;
 use Zaxbux\SecurityHeaders\Classes\PermissionsPolicyFormBuilder;
+use Zaxbux\SecurityHeaders\Classes\NonceInjector;
+use Zaxbux\SecurityHeaders\Models\CSPSettings;
+
 
 class Plugin extends PluginBase {
 
@@ -21,6 +27,17 @@ class Plugin extends PluginBase {
 		 */
 		$this->app['Illuminate\Contracts\Http\Kernel']->prependMiddleware(Classes\NonceGeneratorMiddleware::class);
 		$this->app['Illuminate\Contracts\Http\Kernel']->pushMiddleware(Classes\SecurityHeaderMiddleware::class);
+
+		if (CSPSettings::get('inject_nonce')) {
+            // Automatically inject the nonce attribute into each script and style tag.
+            Event::listen('cms.page.postprocess', function ($controller, $url, $page, $dataHolder) {
+                if ( ! is_object($dataHolder) || ! property_exists($dataHolder, 'content')) {
+                    return;
+                }
+                $dataHolder->content = $this->handleNonceInjection($dataHolder->content);
+				//Log::info($dataHolder->content);
+            });
+        }
 
 		/*
 		 * Form Fields
@@ -178,4 +195,36 @@ class Plugin extends PluginBase {
 		$this->registerConsoleCommand('zaxbux.securityheaders.disable_csp', Console\DisableCSPCommand::class);
 		$this->registerConsoleCommand('zaxbux.securityheaders.disable_hsts', Console\DisableHSTSCommand::class);
 	}
+
+	protected function handleNonceInjection($response)
+    {
+		$nonce = Request::get('csp-nonce');
+		//Log::info($nonce);
+		$injector = NonceInjector::withNonce($nonce);
+		//return $injector->inject($response);
+        // String response, we can inject directly.
+        if (is_string($response)) {
+            return $injector->inject($response);
+        }
+
+        // If it is neither a String nor a proper Response response,
+        // we just return the original value.
+        if ( ! $response instanceof Response) {
+            return $response;
+        }
+
+        // Don't inject into redirects.
+        if ($response->isRedirect()) {
+            return $response;
+        }
+
+        // If this is a json response, we don't inject anything.
+        $isJson = $response->headers->get('content-type') === 'application/json';
+        if ($isJson) {
+            return $response;
+        }
+
+        // Simple response, just replace the content.
+        return $response->setContent($injector->inject($response->getContent()));
+    }
 }

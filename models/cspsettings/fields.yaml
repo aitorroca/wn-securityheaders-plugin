@@ -18,3 +18,8 @@ fields:
         label: zaxbux.securityheaders::lang.fields.cspsettings.log_violations.label
         comment: zaxbux.securityheaders::lang.fields.cspsettings.log_violations.comment
         span: right
+    inject_nonce:
+        label: zaxbux.securityheaders::lang.fields.cspsettings.inject_nonce.label
+        span: left
+        type: switch
+        commentAbove: zaxbux.securityheaders::lang.fields.cspsettings.inject_nonce.comment

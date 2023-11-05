@@ -64,6 +64,10 @@
 				'label' => 'Log Violations',
 				'comment' => 'Store policy violation reports from browsers. You should also enable the Report-To header in Miscellaneous Headers, as the report_uri directive is deprecated.',
 			],
+			'inject_nonce' => [
+				'label' => 'Inject nonce',
+				'comment' => 'Inject a nonce in scripts, links and styles',
+			],
 			'upgrade_insecure_requests' => [
 				'label' => 'Upgrade Insecure Requests',
 				'comment' => '<a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/upgrade-insecure-requests" target="_blank" rel="noopener">Learn more</a>',
